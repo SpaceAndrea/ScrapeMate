@@ -1,0 +1,41 @@
+1. Importazione dei Moduli
+Spiega l'uso di ciascun modulo importato nel tuo script:
+
+time: Usato per inserire pause durante l'esecuzione per aspettare il caricamento delle pagine.
+pandas (pd): Utilizzato per manipolare dati e estrarre tabelle HTML direttamente dalle pagine web.
+selenium: Un framework per automazione web che permette di simulare azioni umane nel browser.
+hashlib: Fornisce funzioni di hashing, utili per generare identificatori univoci.
+
+
+2. Funzione setup_driver()
+Questa funzione configura e avvia il browser automatizzato:
+
+webdriver.ChromeOptions(): Crea un oggetto per configurare opzioni del browser Chrome.
+options.add_argument("--start-maximized"): Imposta il browser a schermo intero.
+webdriver.Chrome(options=options): Avvia il browser con le opzioni configurate.
+return driver: Restituisce l'oggetto driver configurato per essere usato in altre funzioni.
+
+
+3. Funzione login_chess_com(driver, username, password)
+Questa funzione gestisce il processo di login su chess.com:
+
+driver.get(LOGIN_URL): Naviga alla pagina di login.
+WebDriverWait e EC.presence_of_element_located: Assicurano che gli elementi della pagina siano completamente caricati prima di interagire con essi.
+send_keys(username) e send_keys(password): Inseriscono le credenziali di login.
+click(): Clicca sul pulsante di login per accedere.
+
+
+4. Funzione scrape_games_data(username, password)
+Questa è la funzione principale che orquestra il processo di scraping:
+
+driver = setup_driver() e login_chess_com(driver, username, password): Prepara il driver e effettua il login.
+time.sleep(5): Aspetta che la pagina post-login sia completamente caricata.
+GAMES_URL: Costruisce l'URL per navigare tra le pagine delle partite.
+for loop su page_number: Cicla attraverso le pagine dei risultati delle partite.
+driver.get(GAMES_URL + str(page_number + 1)): Visita ciascuna pagina delle partite.
+tables.append(pd.read_html(...)): Estrae le tabelle delle partite dalla pagina.
+cells = driver.find_elements(...) e game_links.append(link): Estrae e salva i link delle partite.
+
+
+5. Gestione delle Eccezioni e Chiusura del Driver
+finally: driver.close(): Assicura che il driver si chiuda correttamente dopo lo scraping, anche in caso di errori.
