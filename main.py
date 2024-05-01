@@ -166,12 +166,14 @@ print("Il nome con i pezzi neri è: ", games['Black Player'] == USERNAME)
 # Add calculated columns for wins, losses, draws, ratings, year, game links
 conditions = [
         (games['White Player'] == USERNAME) & (games['White Result'] == '1'),
-        (games['Black Player'] == USERNAME) & (games['Black Result'] == '1'),
+        (games['Black Player'] == USERNAME) & (games['White Result'] == '0'),
         (games['White Player'] == USERNAME) & (games['White Result'] == '0'),
-        (games['Black Player'] == USERNAME) & (games['Black Result'] == '0'),
+        (games['Black Player'] == USERNAME) & (games['White Result'] == '1'),
+        (games['White Player'] == USERNAME) & (games['White Result'] == '½'),
+        (games['Black Player'] == USERNAME) & (games['White Result'] == '½'),
         ]
-choices = ["Win", "Win", "Loss", "Loss"]
-games['W/L'] = np.select(conditions, choices, default="Draw")
+choices = ["Win", "Win", "Loss", "Loss", "Draw", "Draw"]
+games['W/L'] = np.select(conditions, choices)
 
 conditions = [
         (games['White Player'] == USERNAME),
@@ -245,7 +247,6 @@ games.to_excel('output2.xlsx', index=False)
 #Il primo grafico è possibilmente corretto, da rivedere se si riesce a fare con il codice iniziale della guida, altrimenti tenere questo.
 
 #Ho messo la creazione del dataset pulito qua.
-#La colonna 'W/L' contiene ancora errori invalidi.
 games_excel = pd.read_excel('output2.xlsx')
 
 #Filtro le partite non caricate correttamente (dovrebbero essere 21).
@@ -286,7 +287,7 @@ ax.set_facecolor("black")
 plt.xticks(rotation=45, color="white") #da rimuovere il color
 
 # mostra il grafico
-plt.show()
+plt.savefig("TotalRating.png")
 #Sono 320 partite ranked che però non variano dalla modalità del gioco.
 #Considerare che le partite dalla 317 fino alla 32 sono state giocate nel 2021, quindi è plausibile che il grafico sia incentrato in quell'anno
 # 2020: 3 partite
@@ -333,7 +334,7 @@ ax.set_facecolor("black")
 plt.xticks(rotation=45, color="white") #da rimuovere il color
 
 # mostra il grafico
-plt.show()
+plt.savefig("RapidRating.png")
 
 #--------------------------------------------------------------------------------------
 #Grafico che mostra tutte le partite vinte, perse e pareggiate, visualizzabili tramite istogrammi
@@ -347,11 +348,11 @@ num_draws = games['Draw'].sum()
 fig, ax = plt.subplots(figsize=(15,6))
 
 # Crea un grafico a barre che mostra le Vittorie, Sconfitte e Pareggi
-plt.bar(['Wins', 'Losses', 'Draws'], [num_wins, num_losses, num_draws], color=['green', 'red', 'blue'])
+plt.bar(['Wins', 'Losses', 'Draws'], [num_wins, num_losses, num_draws], color=['#E1D9D1', '#454545', 'grey'], edgecolor='black')
 plt.xlabel('Result')
 plt.ylabel('Number of Games')
 plt.title('Number of Games by Result')
-plt.show()
+plt.savefig("AllScore.png")
 
 #----------------------------------------------------------------------------------------
 #Grafico che mostra le partite vinte, perse e pareggiate con ciascun pezzo tramite istogrammi
@@ -401,7 +402,7 @@ ax.set_xticklabels(labels)
 ax.legend()
 
 # Mostra il grafico
-plt.show()
+plt.savefig("AllScoreColour.png")
 
 #--------------------------------------------------------------------------
 #Grafico che mostra il winrate tra pezzi bianchi vs pezzi neri
@@ -433,16 +434,18 @@ ax.set_xticks(x)
 ax.set_xticklabels(labels)
 
 # Mostra il grafico
-plt.show()
+plt.savefig("WinRate.png")
 
 #Praticamente questi due ultimi grafici fatti prendono di riferimento la lista di cui voglio vedere i dati sul grafico
 
 #--------------------------------------------------------------------------------------------
-
 #Heatmap? Non so quanto sia utile, da valutare
 
+# Seleziona solo colonne numeriche
+games_numeric = games_excel.select_dtypes(include=[np.number])
+
 # Calcola la correlazione tra le colonne del DataFrame
-corr = games_excel.corr()
+corr = games_numeric.corr()
 
 # Crea la figura e l'asse per il grafico
 fig, ax = plt.subplots(figsize=(14, 8))
@@ -457,4 +460,56 @@ heatmap.set_title("Chess Results Correlation Heatmap")
 fig.subplots_adjust(top=0.93)
 
 # Mostra il grafico
-plt.show()
+plt.savefig("HeatMap.png")
+
+#--------------------------------------------------------------------------------------------
+#Grafico "Quante mosse per colore pezzi in un game?"
+
+fig = plt.figure(figsize=(20, 8))  # Definisci la dimensione della figura
+
+# Aggiungi il primo subplot nella prima posizione di una griglia 1x2
+ax1 = fig.add_subplot(1, 2, 1)
+ax1.set_title("Distribuzione del numero di mosse")  # Imposta il titolo del primo grafico
+sns.histplot(games_excel, x="Moves", hue="Colour", palette={"Black": "Black", "White": "Grey"}, ax=ax1)
+ax1.set_xlabel("Numero di mosse")  # Etichetta per l'asse x
+ax1.set_ylabel("Frequenza")  # Etichetta per l'asse y
+
+# Aggiungi il secondo subplot nella seconda posizione della stessa griglia 1x2
+ax2 = fig.add_subplot(1, 2, 2)
+ax2.set_title("Densità del numero di mosse")  # Imposta il titolo del secondo grafico
+sns.kdeplot(data=games_excel, x="Moves", hue="Colour", palette={"Black": "Black", "White": "Grey"}, ax=ax2, fill=True)
+ax2.set_xlabel("Numero di mosse")  # Etichetta per l'asse x
+ax2.set_ylabel("Densità")  # Etichetta per l'asse y
+ax2.set_xlim(0, None)  # Imposta il limite inferiore dell'asse x a 0
+fig.suptitle("How many moves in my typical game?")  # Imposta il titolo della figura
+plt.savefig("CombinedChessPlots.png")  # Salva la figura intera con entrambi i grafici
+
+#---------------------------------------------------------------------------------------------
+#Grafico "Quante mosse per WinRate in un game?"
+
+# Aggiungi una colonna 'count' che è sempre 1 per facilitare l'aggregazione
+games_excel['count'] = 1
+
+# Aggrega per numero di mosse, calcolando il numero totale di partite e vittorie per ogni numero di mosse
+win_rate_data = games_excel.groupby('Moves').agg(total_games=('count', 'sum'),
+                                                 wins=('Win', 'sum')).reset_index()
+
+# Calcola la percentuale di vittorie
+win_rate_data['win_rate'] = win_rate_data['wins'] / win_rate_data['total_games'] * 100
+
+# Creazione del grafico
+plt.figure(figsize=(14, 8))
+sns.lineplot(data=win_rate_data, x='Moves', y='win_rate')
+plt.title("Does the amount of moves affect my win rate?")
+plt.xlabel("Number of Moves")
+plt.ylabel("Win Rate (%)")
+plt.grid(True)
+plt.savefig("Moves_VS_WinRate.png")
+
+#---------------------------------------------------------------------------------------------
+#Grafico "Time Pressure vs Wins"
+
+fig = plt.figure(figsize=(14,8))
+plt.title("How is time pressure affecting my game?")
+sns.countplot(data=games_excel, x='Time', hue="W/L", palette={"Win":"#CCCCCC", "Loss":"Grey", "Draw":"White"}, edgecolor="Black");
+plt.savefig("TimePressure.png")
