@@ -7,6 +7,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+import re
+import numpy as np
 
 def setup_driver():
     options = webdriver.ChromeOptions()
@@ -46,5 +48,98 @@ def scrape_games_data(username, password):
     games = pd.concat(tables, ignore_index=True)
     games['Game Links'] = game_links
     return games
+
+
+def extract_player_info(players_string):
+    match = re.findall(r'\b[A-Za-z0-9]+\b', players_string)
+    ratings = re.findall(r'\((\d+)\)', players_string)
+    return match[0], int(ratings[0]), match[2], int(ratings[1])
+
+# PUNTO DI CRISI:
+
+def process_game_data(games_data, USERNAME):
+    games_data[['White Player', 'White Rating', 'Black Player', 'Black Rating']] = games_data['Players'].apply(lambda x: pd.Series(extract_player_info(x)))
+    # Add results
+    result = games_data.Result.str.split(" ", expand=True)
+    games_data['White Result'] = result[0]
+    games_data['Black Result'] = games_data['White Result'].apply(lambda x: 0 if x == '1' else (1 if x == '0' else '½'))
+    # Drop unneccessary columns
+    games_data = games_data.rename(columns={"Unnamed: 0": "Time"})
+    games_data = games_data.drop(['Players', 'Unnamed: 6', 'Result', 'Accuracy'], axis=1)
+    print("Il nome con i pezzi bianchi è: ", games_data['White Player'] == USERNAME)
+    print("Il nome con i pezzi neri è: ", games_data['Black Player'] == USERNAME)
+    # Add calculated columns for wins, losses, draws, ratings, year, game links
+    conditions = [
+            (games_data['White Player'] == USERNAME) & (games_data['White Result'] == '1'),
+            (games_data['Black Player'] == USERNAME) & (games_data['White Result'] == '0'),
+            (games_data['White Player'] == USERNAME) & (games_data['White Result'] == '0'),
+            (games_data['Black Player'] == USERNAME) & (games_data['White Result'] == '1'),
+            (games_data['White Player'] == USERNAME) & (games_data['White Result'] == '½'),
+            (games_data['Black Player'] == USERNAME) & (games_data['White Result'] == '½'),
+            ]
+    choices = ["Win", "Win", "Loss", "Loss", "Draw", "Draw"]
+    games_data['W/L'] = np.select(conditions, choices)
+    conditions = [
+            (games_data['White Player'] == USERNAME),
+            (games_data['Black Player'] == USERNAME)
+            ]
+    choices = ["White", "Black"]
+    games_data['Colour'] = np.select(conditions, choices)
+    conditions = [
+            (games_data['White Player'] == USERNAME),
+            (games_data['Black Player'] == USERNAME)
+            ]
+    choices = [games_data['White Rating'], games_data['Black Rating']]
+    games_data['My Rating'] = np.select(conditions, choices)
+    conditions = [
+            (games_data['White Player'] != USERNAME),
+            (games_data['Black Player'] != USERNAME)
+            ]
+    choices = [games_data['White Rating'], games_data['Black Rating']]
+    games_data['Opponent Rating'] = np.select(conditions, choices)
+    games_data['Rating Difference'] = games_data['Opponent Rating'] - games_data['My Rating']
+    print("I risultati delle partite sono: ",games_data[['White Result', 'Black Result']].head())
+    conditions = [
+            (games_data['White Player'] == USERNAME) & (games_data['White Result'] == '1'),
+            (games_data['Black Player'] == USERNAME) & (games_data['White Result'] == '0')
+            ]
+    choices = [1, 1]
+    games_data['Win'] = np.select(conditions, choices)
+    conditions = [
+            (games_data['White Player'] == USERNAME) & (games_data['White Result'] == '0'),
+            (games_data['Black Player'] == USERNAME) & (games_data['White Result'] == '1')
+            ]
+    choices = [1, 1]
+    games_data['Loss'] = np.select(conditions, choices)
+    conditions = [
+            (games_data['White Player'] == USERNAME) & (games_data['White Result'] == '½'),
+            (games_data['Black Player'] == USERNAME) & (games_data['White Result'] == '½')
+            ]
+    choices = [1, 1]
+    games_data['Draw'] = np.select(conditions, choices)
+    print("I risultati delle partite ORA sono: ",games_data[['White Result', 'Black Result']].head())
+    games_data['Year'] = pd.to_datetime(games_data['Date']).dt.to_period('Y')
+    games_data['Link'] = pd.Series(games_data['Game Links'])
+    # Optional calculated columns for indicating black or white pieces - uncomment if interested in these
+    games_data['Is_White'] = np.where(games_data['White Player']==USERNAME, 1, 0)
+    games_data['Is_Black'] = np.where(games_data['Black Player']==USERNAME, 1, 0)
+    # Correct date format
+    games_data["Date"] = pd.to_datetime(
+        games_data["Date"].str.replace(",", "") + " 00:00", format = '%b %d %Y %H:%M'
+    )
+    print(games_data.head(3))
+    games_data.to_excel('output2.xlsx', index=False)
+
+def pulizia_dataset():
+#Ho messo la creazione del dataset pulito qua.
+    games_data_excel = pd.read_excel('output2.xlsx')
+
+#Filtro le partite non caricate correttamente (dovrebbero essere 21).
+    games_data_excel = games_data_excel[games_data_excel['Colour'] != '0']
+    games_data_excel = games_data_excel.dropna(subset=['Colour'])
+
+    games_data_excel.to_excel('output3.xlsx', index=False)
+
+    return games_data_excel
 
 # Non aggiungere codice eseguibile al di fuori delle funzioni in questo file.
