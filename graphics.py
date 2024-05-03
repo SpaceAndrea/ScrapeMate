@@ -14,6 +14,7 @@ import numpy as np
 # 2024: 4 partite
 #Tot. 320 partite
 
+#Questa funzione genera un grafico sul rating totale
 def generate_chess_rating_plot(data):
     # Imposta lo stile dei grafici di seaborn
     sns.set_style("dark")
@@ -55,12 +56,13 @@ def generate_chess_rating_plot(data):
     # Chiudi la figura per liberare la memoria
     plt.close()
 
+#Questa funzione creaun grafico sul Rapid Rating
 def generate_chess_rating_rapid(games_data_excel):
     # Imposta lo stile dei grafici di seaborn
     sns.set_style("dark")
 
     games_data_excel_10min = games_data_excel[games_data_excel['Time'] == '10 min']
-    games_data_excel_10min.to_excel('10Minutesgames_data.xlsx', index=False)
+    games_data_excel_10min.to_excel('10MinutesGames.xlsx', index=False)
 
     # Raggruppa per data e calcola la media di 'My Rating'
     grouped_data = games_data_excel_10min.groupby('Date')['My Rating'].mean().reset_index()
@@ -90,6 +92,7 @@ def generate_chess_rating_rapid(games_data_excel):
     # mostra il grafico
     plt.savefig("RapidRating.png")
 
+#Questa funzione crea un grafico sugli score di tutte le partite
 def generate_chess_all_score(games_data_excel):
     fig, ax = plt.subplots(figsize=(15,6))
     #oppure
@@ -98,25 +101,28 @@ def generate_chess_all_score(games_data_excel):
     plt.xlabel('Result')
     plt.ylabel('Number of games')
     sns.countplot(data=games_data_excel, x='W/L', palette={"Win": "#E1D9D1", "Loss": "#454545", "Draw": "grey"}, edgecolor="black")
-    plt.savefig("AllScore2.png")
+    plt.savefig("AllScore.png")
 
+#Questa funzione crea un grafico sugli score di tutte le partite basandosi sul colore giocato
 def generate_chess_all_score_colour(games_data_excel):
     fig, ax = plt.subplots(figsize=(8,6))
     plt.title("Wins, Losses and Draws by Colour")
     plt.xlabel(None)
     plt.ylabel('Number of games')
     sns.countplot(data=games_data_excel, x='W/L', hue="Colour", palette={"Black": "#454545", "White": "#E1D9D1"}, edgecolor="black");
-    plt.savefig("AllScoreColour2.png")
+    plt.savefig("AllScoreColour.png")
 
-
+#Questa funzione crea un grafico sul winrate per ciascun colore giocato
 def generate_chess_winrate_colour(games_data_excel):
     fig, ax = plt.subplots(figsize=(8,6))
     # ax.set_title("Win Rate by Colour")
     plt.title("Win Rate by Colour")
-    sns.barplot(data=games_data_excel, x='Colour', y='Win', palette={"Black": "#454545", "White": "#E1D9D1"}, edgecolor="black", errorbar="ci");
+    sns.barplot(data=games_data_excel, x='Colour', y='Win', palette={"Black": "#454545", "White": "#E1D9D1"}, 
+                edgecolor="black", errcolor="blue", errorbar="ci");
     #errorbar="ci" è l'intervallo di confidenza
-    plt.savefig("WinRate2.png")
+    plt.savefig("WinRate.png")
 
+#Questa funzione crea una heatmap
 def generate_chess_heatmap(games_data_excel):
 # Seleziona solo colonne numeriche
     games_data_numeric = games_data_excel.select_dtypes(include=[np.number])
@@ -137,8 +143,9 @@ def generate_chess_heatmap(games_data_excel):
     fig.subplots_adjust(top=0.93)
 
 # Mostra il grafico
-    plt.savefig("HeatMap2.png")
+    plt.savefig("HeatMap.png")
 
+#Questa funzione crea due grafici sul numero di mosse in generale
 def generate_chess_plot_combined(games_data_excel):
     fig = plt.figure(figsize=(20, 8))  # Definisci la dimensione della figura
 
@@ -157,17 +164,18 @@ def generate_chess_plot_combined(games_data_excel):
     ax2.set_ylabel("Densità")  # Etichetta per l'asse y
     ax2.set_xlim(0, None)  # Imposta il limite inferiore dell'asse x a 0
     fig.suptitle("How many moves in my typical game?")  # Imposta il titolo della figura
-    plt.savefig("CombinedChessPlots2.png")  # Salva la figura intera con entrambi i grafici
+    plt.savefig("CombinedChessPlots.png")  # Salva la figura intera con entrambi i grafici
 
+#Questa funzione crea un grafico per vedere se le mosse influenzano il winrate
 def generate_chess_movesXwinrate(games_data_excel):
     fig = plt.figure(figsize=(14,8))
     ax = fig.add_subplot(1,1,1)
     ax.set_title("Does the amount of moves affect my win rate?")
 
     sns.histplot(games_data_excel, x="Moves", hue="W/L", multiple="stack", palette={"Loss": "Black", "Win": "Grey", "Draw": "lightgray"})
-    plt.savefig("Moves_VS_WinRate2.png")
+    plt.savefig("Moves_VS_WinRate.png")
 
-
+#Questa funzione crea un grafico per vedere se il tempo influenza le partite
 def generate_chess_timepressure(games_data_excel):
     fig = plt.figure(figsize=(14,8))
     plt.title("How is time pressure affecting my game?")
