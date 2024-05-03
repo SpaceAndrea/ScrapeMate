@@ -10,12 +10,23 @@ from selenium.webdriver.chrome.options import Options
 import re
 import numpy as np
 
+#Questa funzione restituisce i parametri di login
+def login():
+    # Chiedi all'utente di inserire username e password
+    username_input = input("Inserisci il tuo username: ")
+    password_input = input("Inserisci la tua password: ")
+
+    print("Accesso consentito. Benvenuto!")
+    return username_input, password_input
+
+#Questa funzione configura e avvia il browser automatizzato
 def setup_driver():
     options = webdriver.ChromeOptions()
     options.add_argument("--start-maximized")
     driver = webdriver.Chrome(options=options)
     return driver
 
+#Questa funzione gestisce il processo di login su chess.com
 def login_chess_com(driver, username, password):
     LOGIN_URL = "https://www.chess.com/login"
     driver.get(LOGIN_URL)
@@ -23,6 +34,7 @@ def login_chess_com(driver, username, password):
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "password"))).send_keys(password)
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "login"))).click()
 
+#Questa è la funzione principale che applica il processo di scraping
 def scrape_games_data(username, password):
     driver = setup_driver()
     login_chess_com(driver, username, password)
@@ -43,20 +55,19 @@ def scrape_games_data(username, password):
                 link = cell.find_element(By.TAG_NAME, 'a').get_attribute('href')
                 game_links.append(link)
     finally:
-        driver.close()
+        driver.close() #assicura che il driver si chiuda correttamente dopo lo scraping, anche in caso di errori.
         
     games = pd.concat(tables, ignore_index=True)
     games['Game Links'] = game_links
     return games
 
-
+#Questa funzione estrae le informazioni dei giocatori -- libreria 're' (regex) per estrarre i nomi dei giocatori e punteggi
 def extract_player_info(players_string):
-    match = re.findall(r'\b[A-Za-z0-9]+\b', players_string)
-    ratings = re.findall(r'\((\d+)\)', players_string)
-    return match[0], int(ratings[0]), match[2], int(ratings[1])
+    match = re.findall(r'\b[A-Za-z0-9]+\b', players_string) #occorrenze sequenze alfanumeriche, cattura i nomi dei giocatori
+    ratings = re.findall(r'\((\d+)\)', players_string) #occorrenze numeri tra parantesi, cattura i punteggi dei giocatori
+    return match[0], int(ratings[0]), match[2], int(ratings[1]) #tupla contente nome e risultato dei giocatori
 
-# PUNTO DI CRISI:
-
+#Questa funzione elabora i dati delle partite presenti nel dataframe per un utente specifico (USERNAME)
 def process_game_data(games_data, USERNAME):
     games_data[['White Player', 'White Rating', 'Black Player', 'Black Rating']] = games_data['Players'].apply(lambda x: pd.Series(extract_player_info(x)))
     # Add results
@@ -66,8 +77,6 @@ def process_game_data(games_data, USERNAME):
     # Drop unneccessary columns
     games_data = games_data.rename(columns={"Unnamed: 0": "Time"})
     games_data = games_data.drop(['Players', 'Unnamed: 6', 'Result', 'Accuracy'], axis=1)
-    print("Il nome con i pezzi bianchi è: ", games_data['White Player'] == USERNAME)
-    print("Il nome con i pezzi neri è: ", games_data['Black Player'] == USERNAME)
     # Add calculated columns for wins, losses, draws, ratings, year, game links
     conditions = [
             (games_data['White Player'] == USERNAME) & (games_data['White Result'] == '1'),
@@ -98,7 +107,6 @@ def process_game_data(games_data, USERNAME):
     choices = [games_data['White Rating'], games_data['Black Rating']]
     games_data['Opponent Rating'] = np.select(conditions, choices)
     games_data['Rating Difference'] = games_data['Opponent Rating'] - games_data['My Rating']
-    print("I risultati delle partite sono: ",games_data[['White Result', 'Black Result']].head())
     conditions = [
             (games_data['White Player'] == USERNAME) & (games_data['White Result'] == '1'),
             (games_data['Black Player'] == USERNAME) & (games_data['White Result'] == '0')
@@ -117,12 +125,11 @@ def process_game_data(games_data, USERNAME):
             ]
     choices = [1, 1]
     games_data['Draw'] = np.select(conditions, choices)
-    print("I risultati delle partite ORA sono: ",games_data[['White Result', 'Black Result']].head())
     games_data['Year'] = pd.to_datetime(games_data['Date']).dt.to_period('Y')
     games_data['Link'] = pd.Series(games_data['Game Links'])
     # Optional calculated columns for indicating black or white pieces - uncomment if interested in these
-    games_data['Is_White'] = np.where(games_data['White Player']==USERNAME, 1, 0)
-    games_data['Is_Black'] = np.where(games_data['Black Player']==USERNAME, 1, 0)
+    # games_data['Is_White'] = np.where(games_data['White Player']==USERNAME, 1, 0)
+    # games_data['Is_Black'] = np.where(games_data['Black Player']==USERNAME, 1, 0)
     # Correct date format
     games_data["Date"] = pd.to_datetime(
         games_data["Date"].str.replace(",", "") + " 00:00", format = '%b %d %Y %H:%M'
@@ -130,6 +137,7 @@ def process_game_data(games_data, USERNAME):
     print(games_data.head(3))
     games_data.to_excel('output2.xlsx', index=False)
 
+#Questa funzione pulisce il dataset
 def pulizia_dataset():
 #Ho messo la creazione del dataset pulito qua.
     games_data_excel = pd.read_excel('output2.xlsx')
@@ -141,5 +149,3 @@ def pulizia_dataset():
     games_data_excel.to_excel('output3.xlsx', index=False)
 
     return games_data_excel
-
-# Non aggiungere codice eseguibile al di fuori delle funzioni in questo file.
