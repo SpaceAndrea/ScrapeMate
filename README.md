@@ -15,3 +15,7 @@
 - **Esplorazione del proprio profilo**: Scopri in quale contesti giochi meglio e studia le tue partite per migliorare la tua strategia di vittoria.
   
 - **Grafici Interattivi**: Visualizza i tuoi progressi e le tendenze con grafici interattivi e personalizzabili.
+
+## Istruzioni prima dell'uso
+- **Installare i moduli**: Assicurarsi di aver installato Pandas, Selenium e Seaborn.
+- **Installare ChromeDriver**: Installare la versione corretta di ChromeDriver, basandosi sulla propria versione di Chrome ed inserire l'eseguibile nella cartella del progetto.
