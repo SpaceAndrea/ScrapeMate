@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/SpaceAndrea/ScrapeMate/assets/145685548/f8c2d26b-083b-408b-9572-ea5a6b460a04" alt="ScrapeMate Logo">
+  <img src="https://github.com/SpaceAndrea/ScrapeMate/assets/145685548/c7dfa669-083a-402a-a593-545a41b4aafa" alt="ScrapeMate Logo">
 </p>
 
 <h1 align="center">ScrapeMate</h1>
